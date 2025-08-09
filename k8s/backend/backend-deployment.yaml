@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
+  name: quiz-backend
+  namespace: quiz
+spec:
+  replicas: 1
+  selector: 
+    matchLabels: 
+      app: quiz-backend
+  template:
+    metadata: 
+      labels: 
+        app: quiz-backend
+    spec:
+      serviceAccountName: quiz
+      containers:
+        - name: quiz
+          image: bindasp/quiz-backend:latest
+          ports: 
+            - containerPort: 5000
+          envFrom:
+            - secretRef: 
+                name: backend-secret
+            - configMapRef: 
+                name: backend-config
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+

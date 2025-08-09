@@ -1,0 +1,13 @@
+# terraform
+
+EKS/.terraform/
+EKS/backend/.terraform/
+EKS/backend/.terraform.lock.hcl
+*.tfstate
+EKS/.terraform.lock.hcl
+EKS/variables.tf
+
+# kubernetes
+
+k8s/backend/backend-secret.yaml
+todo.txt
