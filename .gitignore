@@ -6,7 +6,7 @@ EKS/backend/.terraform.lock.hcl
 *.tfstate
 EKS/.terraform.lock.hcl
 EKS/variables.tf
-
+EKS/backend/terraform.tfstate.backup
 # kubernetes
 
 k8s/backend/backend-secret.yaml

@@ -2,7 +2,7 @@ provider "aws" {
   region = "eu-north-1"
 }
 
-resource "aws_s3_bucket" "example" {
+resource "aws_s3_bucket" "eks-backend" {
   bucket = "quiz-app-eks-state-bucket"
 
   lifecycle {
