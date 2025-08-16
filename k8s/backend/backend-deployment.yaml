@@ -16,7 +16,7 @@ spec:
       serviceAccountName: quiz
       containers:
         - name: quiz
-          image: bindasp/quiz-backend:17008047653
+          image: bindasp/quiz-backend:17008182297
           ports: 
             - containerPort: 5000
           envFrom:
