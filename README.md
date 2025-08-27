@@ -89,6 +89,21 @@ helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
   --set vpcId=<your-vpc-id>
 ```
 
+Add external secret operator:
+
+```
+helm repo add external-secrets https://charts.external-secrets.io
+```
+
+```
+helm install external-secrets \
+   external-secrets/external-secrets \
+    -n external-secrets \
+    --create-namespace
+```
+
+Create secrets with aws access-key and secret-access-key
+
 ## Illustrations
 
 ---
