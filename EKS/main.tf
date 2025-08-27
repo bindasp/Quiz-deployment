@@ -19,6 +19,11 @@ provider "aws" {
   region = var.region
 }
 
+module "secrets" {
+  source      = "./modules/secrets"
+  db_username = var.db_username
+}
+
 module "vpc" {
   source = "./modules/vpc"
 
@@ -46,5 +51,6 @@ module "rds" {
   subnet_ids     = module.vpc.private_subnet_ids
   eks_node_sg_id = module.eks.eks_node_sg_id
   db_username    = var.db_username
-  db_password    = var.db_password
+  db_password    = module.secrets.rds_password
+
 }
