@@ -31,3 +31,7 @@ variable "node_groups" {
   }))
 }
 
+variable "region" {
+  description = "AWS Cluster region"
+  type        = string
+}
