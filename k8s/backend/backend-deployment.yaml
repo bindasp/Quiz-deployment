@@ -4,7 +4,7 @@ metadata:
   name: quiz-backend
   namespace: quiz
 spec:
-  replicas: 2
+  replicas: 1
   selector: 
     matchLabels: 
       app: quiz-backend
@@ -28,4 +28,7 @@ spec:
             requests:
               memory: "128Mi"
               cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
 
