@@ -1,0 +1,33 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: init-quizdb
+  namespace: quiz
+spec:
+  template:
+    spec:
+      containers:
+      - name: postgres-client
+        image: postgres:15
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            for f in /init-sql/*.sql; do
+              echo "Applying $f..."
+              PGPASSWORD=$POSTGRES_PASSWORD \
+              psql "host=my-eks-cluster-postgres.cpgi2io82jnp.eu-north-1.rds.amazonaws.com port=5432 user=root dbname=quizdb sslmode=require" -f "$f"
+            done
+        env:
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: backend-secret
+              key: DB_PASSWORD
+        volumeMounts:
+        - name: init-sql
+          mountPath: /init-sql
+      restartPolicy: OnFailure
+      volumes: 
+      - name: init-sql
+        configMap:
+          name: init-sql

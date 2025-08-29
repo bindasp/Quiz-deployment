@@ -30,7 +30,38 @@ resource "aws_iam_role_policy_attachment" "alb_controller_attach" {
   policy_arn = aws_iam_policy.alb_controller.arn
 }
 
-# Service Account (IRSA)
+# External Secrets IAM
+
+resource "aws_iam_policy" "external_secrets" {
+  name   = "ExternalSecretsIAMPolicy"
+  policy = file("${path.module}/external_secrets_iam_policy.json")
+}
+
+resource "aws_iam_role" "external_secrets" {
+  name = "ExternalSecretsRole"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Federated = aws_iam_openid_connect_provider.eks.arn
+        }
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Condition = {
+          StringEquals = {
+            "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:sub" = "system:serviceaccount:external-secrets:external-secrets"
+          }
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "external_secrets_attach" {
+  role       = aws_iam_role.external_secrets.name
+  policy_arn = aws_iam_policy.external_secrets.arn
+}
 
 provider "kubernetes" {
   host                   = aws_eks_cluster.main.endpoint
@@ -38,10 +69,25 @@ provider "kubernetes" {
   token                  = data.aws_eks_cluster_auth.this.token
 }
 
+# Create namespaces
+
+resource "kubernetes_namespace" "external_secrets" {
+  metadata {
+    name = "external-secrets"
+  }
+}
+
+resource "kubernetes_namespace" "quiz" {
+  metadata {
+    name = "quiz"
+  }
+}
 
 data "aws_eks_cluster_auth" "this" {
   name = aws_eks_cluster.main.name
 }
+
+# Service Account (IRSA)
 
 resource "kubernetes_service_account" "alb_controller" {
   metadata {
@@ -50,6 +96,36 @@ resource "kubernetes_service_account" "alb_controller" {
 
     annotations = {
       "eks.amazonaws.com/role-arn" = aws_iam_role.alb_controller.arn
+    }
+  }
+}
+
+resource "kubernetes_service_account" "external_secrets" {
+  metadata {
+    name      = "external-secrets"
+    namespace = "external-secrets"
+    annotations = {
+      "eks.amazonaws.com/role-arn" = aws_iam_role.external_secrets.arn
+    }
+  }
+}
+
+resource "kubernetes_service_account" "cluster_autoscaler" {
+  metadata {
+    name      = "cluster-autoscaler"
+    namespace = "kube-system"
+    annotations = {
+      "eks.amazonaws.com/role-arn" = aws_iam_role.eks_cluster_autoscaler.arn
+    }
+  }
+}
+
+resource "kubernetes_service_account" "quiz" {
+  metadata {
+    name      = "quiz"
+    namespace = "quiz"
+    labels = {
+      name = quiz
     }
   }
 }
@@ -95,5 +171,63 @@ resource "helm_release" "alb_controller" {
       value = kubernetes_service_account.alb_controller.metadata[0].name
     }
 
+  ]
+}
+
+resource "helm_release" "external_secrets" {
+  name       = "external-secrets"
+  repository = "https://charts.external-secrets.io"
+  chart      = "external-secrets"
+  namespace  = "external-secrets"
+
+  set = [{
+    name  = "serviceAccount.create"
+    value = "false"
+    },
+
+    {
+      name  = "serviceAccount.name"
+      value = "external-secrets"
+  }]
+
+  depends_on = [
+    kubernetes_namespace.external_secrets,
+    kubernetes_service_account.external_secrets
+  ]
+}
+
+resource "helm_release" "metrics_server" {
+  name       = "metrics-server"
+  repository = "https://kubernetes-sigs.github.io/metrics-server/"
+  chart      = "metrics-server"
+  namespace  = "kube-system"
+
+}
+
+resource "helm_release" "cluster_autoscaler" {
+  name       = "cluster-autoscaler"
+  repository = "https://kubernetes.github.io/autoscaler"
+  chart      = "cluster-autoscaler"
+  namespace  = "kube-system"
+
+  set = [{
+    name  = "autoDiscovery.clusterName"
+    value = aws_eks_cluster.main.name
+    },
+
+    {
+      name  = "awsRegion"
+      value = var.region
+    },
+
+    {
+      name  = "rbac.serviceAccount.create"
+      value = "false"
+    },
+
+    {
+      name  = "rbac.serviceAccount.name"
+      value = kubernetes_service_account.cluster_autoscaler.metadata[0].name
+    }
   ]
 }

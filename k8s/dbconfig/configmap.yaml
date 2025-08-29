@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: init-sql
+  namespace: quiz
+data:
+  db.sql: |
+    CREATE TABLE test (id serial PRIMARY KEY, name text);
+  score.sql: |
+    INSERT INTO test(name) VALUES ('Alice'), ('Bob');
+  validate.sql: |
+    ALTER TABLE test ADD COLUMN created_at TIMESTAMP DEFAULT now();
