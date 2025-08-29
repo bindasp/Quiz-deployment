@@ -125,7 +125,7 @@ resource "kubernetes_service_account" "quiz" {
     name      = "quiz"
     namespace = "quiz"
     labels = {
-      name = quiz
+      "name" = "quiz"
     }
   }
 }
