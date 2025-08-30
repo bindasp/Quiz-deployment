@@ -5,8 +5,229 @@ metadata:
   namespace: quiz
 data:
   db.sql: |
-    CREATE TABLE test (id serial PRIMARY KEY, name text);
+    -- Users table
+    create table if not exists "Users" (
+    user_id serial primary key,
+    login varchar(255),
+    password varchar(255),
+    email varchar(255)
+    );
+
+    alter table "Users" owner to root;
+
+    -- Tests table
+    create table if not exists "Tests" (
+        test_id serial primary key,
+        user_id integer references "Users" (user_id) on delete cascade,
+        name varchar(255),
+        description text,
+        duration integer,
+        randomize_questions boolean,
+        attempt_limit integer
+    );
+
+    alter table "Tests" owner to root;
+
+    -- Questions table
+    create table if not exists "Questions" (
+        question_number integer not null,
+        test_id integer not null,
+        content text,
+        question_type varchar(50),
+        primary key (question_number, test_id),
+        foreign key (test_id) references "Tests" (test_id) on delete cascade
+    );
+
+    alter table "Questions" owner to root;
+
+    -- Answers table
+    create table if not exists "Answers" (
+        answer_number integer not null,
+        question_number integer not null,
+        test_id integer not null,
+        content text,
+        is_correct boolean,
+        primary key (
+            test_id,
+            question_number,
+            answer_number
+        ),
+        foreign key (question_number, test_id) references "Questions" (question_number, test_id) on delete cascade
+    );
+
+    alter table "Answers" owner to root;
+
+    create unique index "Answers_answer_number_question_number_test_id_idx" on "Answers" (
+        answer_number,
+        question_number,
+        test_id
+    );
+
+    -- Attempts table
+    create table if not exists "Attempts" (
+        user_id integer not null references "Users" (user_id) on delete cascade,
+        test_id integer not null references "Tests" (test_id) on delete cascade,
+        start_time timestamp,
+        completion_time timestamp,
+        primary key (user_id, test_id)
+    );
+
+    alter table "Attempts" owner to root;
+
+    create unique index "Attempts_user_id_test_id_idx" on "Attempts" (user_id, test_id);
+
+    -- Attempt_Answers table
+    create table if not exists "Attempt_Answers" (
+        user_id integer not null,
+        test_id integer not null,
+        question_number integer not null,
+        answer_number integer not null,
+        primary key (
+            user_id,
+            test_id,
+            question_number,
+            answer_number
+        ),
+        foreign key (user_id, test_id) references "Attempts" (user_id, test_id) on delete cascade,
+        foreign key (question_number, test_id) references "Questions" (question_number, test_id) on delete cascade,
+        foreign key (
+            answer_number,
+            question_number,
+            test_id
+        ) references "Answers" (
+            answer_number,
+            question_number,
+            test_id
+        ) on delete cascade
+    );
+
+    alter table "Attempt_Answers" owner to root;
+
+    create unique index "Attempt_Answers_user_id_test_id_answer_number_question_number_idx" on "Attempt_Answers" (
+        user_id,
+        test_id,
+        answer_number,
+        question_number
+    );
+
+    -- Categories table
+    create table if not exists "Categories" (
+        category_id serial primary key,
+        name varchar(255),
+        description text
+    );
+
+    alter table "Categories" owner to root;
+
+    -- Feedback table
+    create table if not exists "Feedback" (
+        user_id integer not null,
+        test_id integer not null,
+        comment text,
+        rating integer,
+        primary key (user_id, test_id),
+        foreign key (user_id, test_id) references "Attempts" (user_id, test_id) on delete cascade
+    );
+
+    alter table "Feedback" owner to root;
+
+    create unique index "Feedback_user_id_test_id_idx" on "Feedback" (user_id, test_id);
+
+    -- Test_Category table
+    create table if not exists "Test_Category" (
+        test_id integer references "Tests" (test_id) on delete cascade,
+        category_id integer references "Categories" (category_id) on delete cascade,
+        primary key (test_id, category_id)
+    );
+
+    alter table "Test_Category" owner to root;
   score.sql: |
-    INSERT INTO test(name) VALUES ('Alice'), ('Bob');
+    CREATE OR REPLACE FUNCTION calculate_test_score(p_user_id INTEGER, p_test_id INTEGER)
+    RETURNS NUMERIC AS $$
+    DECLARE
+        v_total_score NUMERIC := 0;
+        v_question RECORD;
+        v_correct_count INTEGER;
+        v_incorrect_count INTEGER;
+        v_question_score NUMERIC;
+        v_selected RECORD;
+    BEGIN
+        -- Przejście przez wszystkie pytania w teście
+        FOR v_question IN
+            SELECT question_number
+            FROM "Questions"
+            WHERE test_id = p_test_id
+        LOOP
+            -- Liczba poprawnych odpowiedzi
+            SELECT COUNT(*) INTO v_correct_count
+            FROM "Answers"
+            WHERE test_id = p_test_id
+              AND question_number = v_question.question_number
+              AND is_correct = TRUE;
+
+            -- Liczba niepoprawnych odpowiedzi
+            SELECT COUNT(*) INTO v_incorrect_count
+            FROM "Answers"
+            WHERE test_id = p_test_id
+              AND question_number = v_question.question_number
+              AND is_correct = FALSE;
+
+            -- Jeżeli brak poprawnych odpowiedzi, omijamy pytanie (żeby uniknąć dzielenia przez 0)
+            IF v_correct_count = 0 THEN
+                CONTINUE;
+            END IF;
+
+            v_question_score := 0;
+
+            -- Sprawdzamy odpowiedzi użytkownika dla danego pytania
+            FOR v_selected IN
+                SELECT aa.answer_number, a.is_correct
+                FROM "Attempt_Answers" aa
+                JOIN "Answers" a
+                  ON a.test_id = aa.test_id
+                AND a.question_number = aa.question_number
+                AND a.answer_number = aa.answer_number
+                WHERE aa.user_id = p_user_id
+                  AND aa.test_id = p_test_id
+                  AND aa.question_number = v_question.question_number
+            LOOP
+                IF v_selected.is_correct THEN
+                    -- Poprawna odpowiedź: dodajemy 1/liczba_poprawnych
+                    v_question_score := v_question_score + (1.0 / v_correct_count);
+                ELSE
+                    -- Niepoprawna odpowiedź: odejmujemy 1/liczba_niepoprawnych (jeśli są niepoprawne)
+                    IF v_incorrect_count > 0 THEN
+                        v_question_score := v_question_score - (1.0 / v_incorrect_count);
+                    END IF;
+                END IF;
+            END LOOP;
+
+            -- Nie pozwalamy na ujemny wynik za pytanie
+            IF v_question_score < 0 THEN
+                v_question_score := 0;
+            END IF;
+
+            -- Sumujemy wynik pytania do całkowitego wyniku
+            v_total_score := v_total_score + v_question_score;
+        END LOOP;
+
+        RETURN v_total_score;
+    END;
+    $$ LANGUAGE plpgsql;
+
   validate.sql: |
-    ALTER TABLE test ADD COLUMN created_at TIMESTAMP DEFAULT now();
+    CREATE OR REPLACE FUNCTION validate_user_credentials()
+    RETURNS trigger AS $$
+    BEGIN
+        IF NEW.email !~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$' THEN
+            RAISE EXCEPTION 'Invalid email format: %', NEW.email;
+        END IF;
+
+        RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql;
+
+    CREATE OR REPLACE TRIGGER trigger_validate_user_credentials
+    BEFORE INSERT ON "Users"
+    FOR EACH ROW
+    EXECUTE FUNCTION validate_user_credentials();
