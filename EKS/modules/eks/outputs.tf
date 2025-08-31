@@ -18,6 +18,18 @@ output "eks_node_sg_id" {
   value       = aws_eks_cluster.main.vpc_config[0].cluster_security_group_id
 }
 
-output "eks_cluster_autoscaler_arn" {
-  value = aws_iam_role.eks_cluster_autoscaler.arn
+output "cluster_auth_token" {
+  value = data.aws_eks_cluster_auth.cluster_auth.token
+}
+
+output "cluster_ca_certificate" {
+  value = aws_eks_cluster.main.certificate_authority[0].data
+}
+
+output "aws_iam_openid_connect_provider_url" {
+  value = aws_iam_openid_connect_provider.eks.url
+}
+
+output "aws_iam_openid_connect_provider_arn" {
+  value = aws_iam_openid_connect_provider.eks.arn
 }

@@ -4,6 +4,11 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
+
+    argocd = {
+      source  = "argoproj-labs/argocd"
+      version = "7.11.0"
+    }
   }
 
   backend "s3" {
@@ -18,6 +23,21 @@ terraform {
 provider "aws" {
   region = var.region
 }
+
+provider "helm" {
+  kubernetes = {
+    host                   = module.eks.cluster_endpoint
+    cluster_ca_certificate = base64decode(module.eks.cluster_ca_certificate)
+    token                  = module.eks.cluster_auth_token
+  }
+}
+
+provider "kubernetes" {
+  host                   = module.eks.cluster_endpoint
+  cluster_ca_certificate = base64decode(module.eks.cluster_ca_certificate)
+  token                  = module.eks.cluster_auth_token
+}
+
 
 module "secrets" {
   source      = "./modules/secrets"
@@ -43,6 +63,7 @@ module "eks" {
   subnet_ids      = module.vpc.private_subnet_ids
   node_groups     = var.node_groups
   region          = var.region
+
 }
 
 module "rds" {
@@ -53,5 +74,49 @@ module "rds" {
   eks_node_sg_id = module.eks.eks_node_sg_id
   db_username    = var.db_username
   db_password    = module.secrets.rds_password
+
+}
+
+module "alb-controller" {
+  source                              = "./modules/alb-controller"
+  region                              = var.region
+  vpc_id                              = module.vpc.vpc_id
+  aws_iam_openid_connect_provider_arn = module.eks.aws_iam_openid_connect_provider_arn
+  aws_iam_openid_connect_provider_url = module.eks.aws_iam_openid_connect_provider_url
+  helm_release_name                   = "aws-load-balancer-controller"
+  service_account_name                = "aws-load-balancer-controller"
+  cluster_name                        = var.cluster_name
+
+  depends_on = [module.eks]
+}
+
+module "external-secrets-manager" {
+  source                              = "./modules/external-secrets-manager"
+  aws_iam_openid_connect_provider_arn = module.eks.aws_iam_openid_connect_provider_arn
+  aws_iam_openid_connect_provider_url = module.eks.aws_iam_openid_connect_provider_url
+  helm_release_name                   = "external-secrets"
+  service_account_name                = "external-secrets"
+  external_secrets_version            = "v0.19.2"
+  depends_on                          = [module.eks]
+}
+
+module "cluster-autoscaler" {
+  source                              = "./modules/cluster-autoscaler"
+  aws_iam_openid_connect_provider_arn = module.eks.aws_iam_openid_connect_provider_arn
+  aws_iam_openid_connect_provider_url = module.eks.aws_iam_openid_connect_provider_url
+  helm_release_name                   = "cluster-autoscaler"
+  region                              = var.region
+  cluster_name                        = var.cluster_name
+  service_account_name                = "cluster-autoscaler"
+
+}
+
+module "argocd" {
+  source            = "./modules/argocd"
+  argocd_version    = "8.3.1"
+  github_user       = var.github_user
+  github_token      = var.github_token
+  namespace         = "argocd"
+  helm_release_name = "argocd"
 
 }

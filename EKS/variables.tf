@@ -70,4 +70,13 @@ variable "db_username" {
   default     = "root"
 }
 
+variable "github_user" {
+  description = "Github username"
+  type        = string
+  default     = "bindasp"
+}
 
+variable "github_token" {
+  description = "Github access token"
+  type        = string
+}

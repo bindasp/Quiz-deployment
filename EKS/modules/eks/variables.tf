@@ -35,3 +35,4 @@ variable "region" {
   description = "AWS Cluster region"
   type        = string
 }
+
