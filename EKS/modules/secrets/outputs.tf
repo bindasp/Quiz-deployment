@@ -5,7 +5,12 @@ output "rds_secret_id" {
 
 output "rds_password" {
   description = "Generated RDS password"
-  #   value       = random_password.rds_password.result
-  value     = data.aws_secretsmanager_random_password.rds_password.random_password
-  sensitive = true
+  value       = data.aws_secretsmanager_random_password.rds_password.random_password
+  sensitive   = true
+}
+
+output "argocd_password" {
+  description = "Generated argocd password"
+  value       = data.aws_secretsmanager_random_password.argocd_password.random_password
+  sensitive   = true
 }

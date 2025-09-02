@@ -7,91 +7,61 @@ resource "helm_release" "argocd" {
   create_namespace = true
   version          = var.argocd_version
 
+  set = [
+    {
+      name  = "server.service.type"
+      value = "LoadBalancer"
+    },
+    {
+      name  = "server.service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-type"
+      value = "nlb"
+    },
+    {
+      name  = "server.service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-scheme"
+      value = "internet-facing"
+    },
+    {
+      name  = "server.labels.service"
+      value = "argocd"
+    },
 
-  values = [
-    <<EOF
-server:
-  service:
-    type: LoadBalancer
-  extraArgs:
-    - --insecure
-EOF
+    {
+      name  = "server.extraArgs[0]"
+      value = "--insecure"
+    },
+    {
+      name  = "server.podLabels.service"
+      value = "argocd"
+    }
   ]
+
 }
 
-
-# data "kubernetes_secret" "argocd_admin" {
+# resource "kubernetes_service" "argocd_service" {
 #   metadata {
-#     name      = "argocd-initial-admin-secret"
-#     namespace = "argocd"
-#   }
-#   depends_on = [helm_release.argocd]
-# }
+#     name      = "argocd-service"
+#     namespace = var.namespace
 
-# output "argocd_password" {
-#   value     = data.kubernetes_secret.argocd_admin.data["password"]
-#   sensitive = true
-# }
-# provider "argocd" {
-#   server_addr = "argocd-server.argocd.svc.cluster.local:80"
-#   username    = "admin"
-#   password    = base64decode(data.kubernetes_secret.argocd_admin.data["password"])
-#   insecure    = true
-# }
-
-# resource "argocd_repository" "git" {
-#   repo     = "https://github.com/bindasp/Quiz-deployment.git"
-#   username = var.github_user
-#   password = var.github_token
-# }
-
-# resource "argocd_project" "default" {
-#   metadata {
-#     name      = "default"
-#     namespace = "argocd"
+#     annotations = {
+#       "service.beta.kubernetes.io/aws-load-balancer-type"   = "nlb"
+#       "service.beta.kubernetes.io/aws-load-balancer-scheme" = "internet-facing"
+#     }
 #   }
 
 #   spec {
-#     description  = "Quiz app project"
-#     source_repos = ["*"]
-#     destination {
-#       server    = "https://kubernetes.default.svc"
-#       namespace = "*"
+#     selector = {
+#       "app.kubernetes.io/name" = "argocd"
+#       "service"                = "argocd"
 #     }
-#     cluster_resource_whitelist {
-#       group = "*"
-#       kind  = "*"
+#     port {
+#       name        = "http"
+#       port        = 80
+#       target_port = 8080
+#       protocol    = "TCP"
 #     }
-#   }
-# }
-
-# resource "argocd_application" "quiz_app" {
-#   metadata {
-#     name      = "quiz-app"
-#     namespace = "argocd"
-#   }
-
-#   spec {
-#     project = argocd_project.default.metadata[0].name
-
-#     source {
-#       repo_url        = argocd_repository.git.repo
-#       target_revision = "main"
-#       path            = "k8s/backend"
-#     }
-
-#     destination {
-#       server    = "https://kubernetes.default.svc"
-#       namespace = "quiz"
-#     }
-
-#     sync_policy {
-#       automated {
-#         prune     = true
-#         self_heal = true
-#       }
-#     }
+#     type = "LoadBalancer"
 #   }
 
 #   depends_on = [helm_release.argocd]
 # }
+

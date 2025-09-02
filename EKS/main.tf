@@ -5,10 +5,6 @@ terraform {
       version = "~> 5.0"
     }
 
-    argocd = {
-      source  = "argoproj-labs/argocd"
-      version = "7.11.0"
-    }
   }
 
   backend "s3" {
@@ -38,10 +34,8 @@ provider "kubernetes" {
   token                  = module.eks.cluster_auth_token
 }
 
-
 module "secrets" {
-  source      = "./modules/secrets"
-  db_username = var.db_username
+  source = "./modules/secrets"
 }
 
 module "vpc" {
@@ -64,6 +58,7 @@ module "eks" {
   node_groups     = var.node_groups
   region          = var.region
 
+  depends_on = [module.vpc]
 }
 
 module "rds" {
@@ -75,6 +70,7 @@ module "rds" {
   db_username    = var.db_username
   db_password    = module.secrets.rds_password
 
+  depends_on = [module.vpc]
 }
 
 module "alb-controller" {
@@ -97,7 +93,7 @@ module "external-secrets-manager" {
   helm_release_name                   = "external-secrets"
   service_account_name                = "external-secrets"
   external_secrets_version            = "v0.19.2"
-  depends_on                          = [module.eks]
+  depends_on                          = [module.eks, module.alb-controller]
 }
 
 module "cluster-autoscaler" {
@@ -109,14 +105,15 @@ module "cluster-autoscaler" {
   cluster_name                        = var.cluster_name
   service_account_name                = "cluster-autoscaler"
 
+  depends_on = [module.eks]
 }
 
 module "argocd" {
   source            = "./modules/argocd"
   argocd_version    = "8.3.1"
-  github_user       = var.github_user
-  github_token      = var.github_token
   namespace         = "argocd"
   helm_release_name = "argocd"
+  argocd_password   = module.secrets.argocd_password
 
+  depends_on = [module.secrets, module.eks, module.alb-controller]
 }

@@ -38,6 +38,7 @@ resource "kubernetes_namespace" "external_secrets" {
   metadata {
     name = local.namespace
   }
+
 }
 
 resource "kubernetes_service_account" "external_secrets" {
@@ -51,11 +52,11 @@ resource "kubernetes_service_account" "external_secrets" {
 }
 
 resource "helm_release" "external_secrets" {
-  name       = var.helm_release_name
-  repository = "https://charts.external-secrets.io"
-  chart      = "external-secrets"
-  namespace  = local.namespace
-
+  name             = var.helm_release_name
+  repository       = "https://charts.external-secrets.io"
+  chart            = "external-secrets"
+  namespace        = local.namespace
+  create_namespace = true
   set = [{
     name  = "serviceAccount.create"
     value = "false"
@@ -67,7 +68,11 @@ resource "helm_release" "external_secrets" {
     },
     {
       name  = "installCRDs"
-      value = "false"
+      value = "true"
+    },
+    {
+      name  = "cleanup.crds.enabled"
+      value = "true"
     }
   ]
 
@@ -75,11 +80,12 @@ resource "helm_release" "external_secrets" {
     kubernetes_namespace.external_secrets,
     kubernetes_service_account.external_secrets,
     aws_iam_role_policy_attachment.external_secrets_attach,
+    # null_resource.apply_external_secrets_crds
   ]
 }
 
-resource "null_resource" "apply_external_secrets_crds" {
-  provisioner "local-exec" {
-    command = "kubectl apply -f \"https://raw.githubusercontent.com/external-secrets/external-secrets/${var.external_secrets_version}/deploy/crds/bundle.yaml\" --server-side"
-  }
-}
+# resource "null_resource" "apply_external_secrets_crds" {
+#   provisioner "local-exec" {
+#     command = "kubectl apply -f \"https://raw.githubusercontent.com/external-secrets/external-secrets/${var.external_secrets_version}/deploy/crds/bundle.yaml\" --server-side"
+#   }
+# }
