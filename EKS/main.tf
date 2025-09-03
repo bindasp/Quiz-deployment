@@ -93,7 +93,7 @@ module "external-secrets-manager" {
   helm_release_name                   = "external-secrets"
   service_account_name                = "external-secrets"
   external_secrets_version            = "v0.19.2"
-  depends_on                          = [module.eks, module.alb-controller]
+  depends_on                          = [module.eks, module.secrets, module.alb-controller]
 }
 
 module "cluster-autoscaler" {
@@ -111,9 +111,8 @@ module "cluster-autoscaler" {
 module "argocd" {
   source            = "./modules/argocd"
   argocd_version    = "8.3.1"
-  namespace         = "argocd"
   helm_release_name = "argocd"
   argocd_password   = module.secrets.argocd_password
 
-  depends_on = [module.secrets, module.eks, module.alb-controller]
+  depends_on = [module.eks]
 }

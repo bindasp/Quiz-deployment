@@ -80,12 +80,6 @@ resource "helm_release" "external_secrets" {
     kubernetes_namespace.external_secrets,
     kubernetes_service_account.external_secrets,
     aws_iam_role_policy_attachment.external_secrets_attach,
-    # null_resource.apply_external_secrets_crds
   ]
 }
 
-# resource "null_resource" "apply_external_secrets_crds" {
-#   provisioner "local-exec" {
-#     command = "kubectl apply -f \"https://raw.githubusercontent.com/external-secrets/external-secrets/${var.external_secrets_version}/deploy/crds/bundle.yaml\" --server-side"
-#   }
-# }

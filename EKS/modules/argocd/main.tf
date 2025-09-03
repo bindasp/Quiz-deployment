@@ -1,11 +1,25 @@
+locals {
+  namespace = "argocd"
+}
+
+resource "kubernetes_namespace" "argocd" {
+  metadata {
+    name = local.namespace
+  }
+
+
+}
+
 resource "helm_release" "argocd" {
   name       = var.helm_release_name
   repository = "https://argoproj.github.io/argo-helm"
   chart      = "argo-cd"
-  namespace  = var.namespace
+  namespace  = local.namespace
 
-  create_namespace = true
-  version          = var.argocd_version
+  version = var.argocd_version
+
+  timeout = 900
+  wait    = true
 
   set = [
     {
@@ -35,33 +49,6 @@ resource "helm_release" "argocd" {
     }
   ]
 
+  depends_on = [kubernetes_namespace.argocd]
 }
-
-# resource "kubernetes_service" "argocd_service" {
-#   metadata {
-#     name      = "argocd-service"
-#     namespace = var.namespace
-
-#     annotations = {
-#       "service.beta.kubernetes.io/aws-load-balancer-type"   = "nlb"
-#       "service.beta.kubernetes.io/aws-load-balancer-scheme" = "internet-facing"
-#     }
-#   }
-
-#   spec {
-#     selector = {
-#       "app.kubernetes.io/name" = "argocd"
-#       "service"                = "argocd"
-#     }
-#     port {
-#       name        = "http"
-#       port        = 80
-#       target_port = 8080
-#       protocol    = "TCP"
-#     }
-#     type = "LoadBalancer"
-#   }
-
-#   depends_on = [helm_release.argocd]
-# }
 

@@ -3,11 +3,6 @@ variable "helm_release_name" {
   type        = string
 }
 
-variable "namespace" {
-  description = "ArgoCD namespace"
-  type        = string
-}
-
 variable "argocd_version" {
   description = "ArgoCD version"
   type        = string
