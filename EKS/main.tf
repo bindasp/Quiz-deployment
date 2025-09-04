@@ -108,11 +108,11 @@ module "cluster-autoscaler" {
   depends_on = [module.eks]
 }
 
-module "argocd" {
-  source            = "./modules/argocd"
-  argocd_version    = "8.3.1"
-  helm_release_name = "argocd"
-  argocd_password   = module.secrets.argocd_password
+# module "argocd" {
+#   source            = "./modules/argocd"
+#   argocd_version    = "8.3.1"
+#   helm_release_name = "argocd"
+#   argocd_password   = module.secrets.argocd_password
 
-  depends_on = [module.eks]
-}
+#   depends_on = [module.eks]
+# }

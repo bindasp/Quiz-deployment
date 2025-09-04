@@ -6,4 +6,5 @@ resources:
   - frontend.yaml
   - backend.yaml
 
-namespace: quiz
+namespace: argocd
+
