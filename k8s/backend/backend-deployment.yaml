@@ -4,7 +4,6 @@ metadata:
   name: quiz-backend
   namespace: quiz
 spec:
-  replicas: 1
   selector: 
     matchLabels: 
       app: quiz-backend

@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: quiz-app-frontend
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/bindasp/Quiz-deployment.git'
+    targetRevision: main
+    path: k8s/frontend
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: quiz
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
