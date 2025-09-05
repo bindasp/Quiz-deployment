@@ -3,7 +3,7 @@ kind: Kustomization
 
 resources:
   - secrets.yaml
-  - secretstore.yaml
+  - clustersecretstore.yaml
   - backend/
   - frontend/
   - dbconfig/

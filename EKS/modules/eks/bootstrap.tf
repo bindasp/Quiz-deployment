@@ -13,10 +13,3 @@ resource "kubernetes_service_account" "quiz" {
     }
   }
 }
-
-resource "kubernetes_namespace" "argocd" {
-  metadata {
-    name = "argocd"
-  }
-
-}

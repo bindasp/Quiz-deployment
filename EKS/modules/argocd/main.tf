@@ -11,16 +11,12 @@ resource "kubernetes_namespace" "argocd" {
 }
 
 resource "helm_release" "argocd" {
-  name       = var.helm_release_name
-  repository = "https://argoproj.github.io/argo-helm"
-  chart      = "argo-cd"
-  namespace  = local.namespace
-
-  version = var.argocd_version
-
-  timeout = 900
-  wait    = true
-
+  name             = var.helm_release_name
+  repository       = "https://argoproj.github.io/argo-helm"
+  chart            = "argo-cd"
+  namespace        = local.namespace
+  version          = var.argocd_version
+  create_namespace = false
   set = [
     {
       name  = "server.service.type"
@@ -47,6 +43,14 @@ resource "helm_release" "argocd" {
       name  = "server.podLabels.service"
       value = "argocd"
     }
+  ]
+
+  values = [
+    <<EOF
+configs:
+  secret:
+      argocdServerAdminPassword: "${var.argocd_password}"
+EOF
   ]
 
   depends_on = [kubernetes_namespace.argocd]

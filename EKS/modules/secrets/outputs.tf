@@ -10,7 +10,8 @@ output "rds_password" {
 }
 
 output "argocd_password" {
-  description = "Generated argocd password"
-  value       = data.aws_secretsmanager_random_password.argocd_password.random_password
+  description = "Generated ArgoCD hash"
+  value       = local.argocd_admin_hash
   sensitive   = true
 }
+
