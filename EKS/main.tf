@@ -115,3 +115,15 @@ module "argocd" {
   argocd_password   = module.secrets.argocd_password
   depends_on        = [module.eks]
 }
+
+module "metrics-server" {
+  source            = "./modules/metrics-server"
+  namespace         = "kube-system"
+  helm_release_name = "metrics-server"
+}
+
+module "prometheus-stack" {
+  source            = "./modules/prometheus-stack"
+  helm_release_name = "prometheus"
+  chart_version     = "77.5.0"
+}

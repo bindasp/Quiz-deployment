@@ -50,7 +50,8 @@ locals {
 }
 
 resource "aws_secretsmanager_secret" "argocd_admin_hash" {
-  name = "argocd-admin-password-hash"
+  name                    = "argocd-admin-password"
+  recovery_window_in_days = 0
 }
 
 resource "aws_secretsmanager_secret_version" "argocd_admin_hash" {
