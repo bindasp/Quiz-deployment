@@ -14,4 +14,4 @@ images:
   newTag: latest
 - name: bindasp/quiz-frontend
   newName: bindasp/quiz-frontend
-  newTag: "17590813574"
+  newTag: "17590891919"
