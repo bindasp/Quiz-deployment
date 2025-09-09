@@ -7,3 +7,8 @@ resources:
   - backend-config.yaml
   - backend-hpa.yaml
   - backend-external-secrets.yaml
+
+images:
+  - name: bindasp/quiz-backend
+    newName: bindasp/quiz-backend
+    newTag: latest
