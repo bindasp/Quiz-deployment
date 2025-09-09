@@ -1,21 +1,3 @@
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-
-  }
-
-  backend "s3" {
-    bucket         = "quiz-app-eks-state-bucket"
-    key            = "terraform.tfstate"
-    region         = "eu-north-1"
-    dynamodb_table = "quiz-app-eks-state-locks"
-    encrypt        = true
-  }
-}
-
 provider "aws" {
   region = var.region
 }

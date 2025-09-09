@@ -7,3 +7,8 @@ resources:
   - frontend-config.yaml
   - frontend-hpa.yaml
   - ingress.yaml
+
+images:
+  - name: bindasp/quiz-frontend
+    newName: bindasp/quiz-frontend
+    newTag: latest

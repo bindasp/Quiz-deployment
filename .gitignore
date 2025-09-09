@@ -12,3 +12,4 @@ k8s/backend/backend-secret.yaml
 k8s/secrets.yaml
 todo.txt
 .env
+.vscode/
