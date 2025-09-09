@@ -15,7 +15,7 @@ spec:
       serviceAccountName: quiz
       containers:
         - name: nginx
-          image: bindasp/quiz-frontend:17577432606
+          image: bindasp/quiz-frontend:17587912885
           imagePullPolicy: Always
           ports:
             - containerPort: 80
