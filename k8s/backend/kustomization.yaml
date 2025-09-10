@@ -11,4 +11,4 @@ resources:
 images:
 - name: bindasp/quiz-backend
   newName: bindasp/quiz-backend
-  newTag: "17614463366"
+  newTag: "17614465372"
